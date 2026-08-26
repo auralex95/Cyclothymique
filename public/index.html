@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <!-- viewport-fit=cover + user-scalable=no : plein écran iPad sans zoom accidentel en cours de show -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e14">
+  <title>Contrôleur Art-Net</title>
+
+  <!-- PWA : ajout à l'écran d'accueil iPad, lancement plein écran sans barre Safari -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Art-Net">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Bandeau permanent : état de connexion, master, blackout, navigation -->
+  <header class="topbar">
+    <div class="brand">
+      <span id="conn-led" class="led" title="État de la connexion"></span>
+      <span class="brand-name">Art-Net</span>
+      <span id="conn-text" class="conn-text">connexion…</span>
+    </div>
+
+    <div class="master">
+      <label class="master-label">Master <b id="master-value">100%</b></label>
+      <div id="master-fader" class="hfader" role="slider" aria-label="Master dimmer"></div>
+    </div>
+
+    <button id="blackout-btn" class="btn-blackout" type="button">BLACKOUT</button>
+
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-view="control" type="button">Contrôle</button>
+      <button class="tab" data-view="presets" type="button">Presets</button>
+      <button class="tab" data-view="patch" type="button">Patch</button>
+      <button class="tab" data-view="network" type="button">Réseau</button>
+      <button class="tab" data-view="monitor" type="button">Debug</button>
+    </nav>
+  </header>
+
+  <!-- Chaque vue est rendue dans ce conteneur par public/js/views/*.js -->
+  <main id="view" class="view"></main>
+
+  <!-- Voile affiché si le backend est injoignable : jamais de plantage silencieux -->
+  <div id="offline" class="offline hidden">
+    <div class="offline-card">
+      <h2>Serveur injoignable</h2>
+      <p>La liaison avec le serveur Art-Net est perdue.<br>
+         Les projecteurs conservent leur dernier état tant que le serveur émet ;
+         si le serveur est arrêté, les nodes ne reçoivent plus de signal.</p>
+      <p class="offline-detail" id="offline-detail"></p>
+      <button id="offline-retry" class="btn" type="button">Réessayer maintenant</button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Client Socket.IO servi par le backend (aucune dépendance externe / CDN) -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

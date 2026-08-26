@@ -1,0 +1,33 @@
+{
+  "id": "wash-led-rgbw-8",
+  "name": "Wash LED RGBW 8 canaux",
+  "manufacturer": "Générique",
+  "shortName": "Wash RGBW",
+  "model": "LED Wash RGBW 8ch",
+  "channelCount": 8,
+  "notes": "Barre / wash LED statique RGBW avec dimmer, shutter et macros.",
+  "channels": {
+    "dimmer":     { "channel": 1, "default": 0 },
+    "shutter":    { "channel": 2, "default": 1 },
+    "red":        { "channel": 3, "default": 1 },
+    "green":      { "channel": 4, "default": 1 },
+    "blue":       { "channel": 5, "default": 1 },
+    "white":      { "channel": 6, "default": 0 },
+    "macro":      { "channel": 7, "default": 0 },
+    "macroSpeed": { "channel": 8, "default": 0 }
+  },
+  "wheels": {
+    "shutter": [
+      { "name": "Fermé", "value": 0 },
+      { "name": "Ouvert", "value": 255 },
+      { "name": "Strobe lent", "value": 40 },
+      { "name": "Strobe rapide", "value": 140 }
+    ],
+    "macro": [
+      { "name": "Off", "value": 0 },
+      { "name": "Fondu couleurs", "value": 80 },
+      { "name": "Saut couleurs", "value": 160 },
+      { "name": "Arc-en-ciel", "value": 220 }
+    ]
+  }
+}

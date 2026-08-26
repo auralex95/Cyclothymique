@@ -1,0 +1,71 @@
+{
+  "id": "generic-moving-head-16",
+  "name": "Lyre générique 16 canaux",
+  "manufacturer": "Générique",
+  "shortName": "Lyre 16ch",
+  "model": "Moving Head Spot 16ch",
+  "channelCount": 16,
+  "notes": "Profil passe-partout pour lyre spot 16 canaux avec pan/tilt 16 bits, roues de couleur et de gobo.",
+  "channels": {
+    "pan":        { "channel": 1,  "fine": 2,  "default": 0.5 },
+    "tilt":       { "channel": 3,  "fine": 4,  "default": 0.5 },
+    "ptSpeed":    { "channel": 5,  "default": 0 },
+    "dimmer":     { "channel": 6,  "default": 0 },
+    "shutter":    { "channel": 7,  "default": 1 },
+    "colorWheel": { "channel": 8,  "default": 0 },
+    "gobo":       { "channel": 9,  "default": 0 },
+    "goboRotate": { "channel": 10, "default": 0 },
+    "prism":      { "channel": 11, "default": 0 },
+    "focus":      { "channel": 12, "default": 0.5 },
+    "zoom":       { "channel": 13, "default": 0.5 },
+    "frost":      { "channel": 14, "default": 0 },
+    "control":    { "channel": 15, "default": 0 },
+    "macro":      { "channel": 16, "default": 0 }
+  },
+  "wheels": {
+    "shutter": [
+      { "name": "Fermé", "value": 0 },
+      { "name": "Ouvert", "value": 255 },
+      { "name": "Strobe lent", "value": 40 },
+      { "name": "Strobe moyen", "value": 90 },
+      { "name": "Strobe rapide", "value": 130 },
+      { "name": "Pulse", "value": 180 }
+    ],
+    "colorWheel": [
+      { "name": "Blanc", "value": 0 },
+      { "name": "Rouge", "value": 10 },
+      { "name": "Orange", "value": 20 },
+      { "name": "Jaune", "value": 30 },
+      { "name": "Vert", "value": 40 },
+      { "name": "Cyan", "value": 50 },
+      { "name": "Bleu", "value": 60 },
+      { "name": "Magenta", "value": 70 },
+      { "name": "CTO", "value": 80 }
+    ],
+    "gobo": [
+      { "name": "Ouvert", "value": 0 },
+      { "name": "Gobo 1", "value": 10 },
+      { "name": "Gobo 2", "value": 20 },
+      { "name": "Gobo 3", "value": 30 },
+      { "name": "Gobo 4", "value": 40 },
+      { "name": "Gobo 5", "value": 50 },
+      { "name": "Gobo 6", "value": 60 },
+      { "name": "Gobo 7", "value": 70 }
+    ],
+    "prism": [
+      { "name": "Off", "value": 0 },
+      { "name": "Prisme 3 faces", "value": 128 }
+    ],
+    "control": [
+      { "name": "Normal", "value": 0 },
+      { "name": "Reset", "value": 200 },
+      { "name": "Lampe ON", "value": 240 }
+    ],
+    "macro": [
+      { "name": "Off", "value": 0 },
+      { "name": "Macro 1", "value": 40 },
+      { "name": "Macro 2", "value": 80 },
+      { "name": "Macro 3", "value": 120 }
+    ]
+  }
+}

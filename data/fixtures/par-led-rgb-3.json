@@ -1,0 +1,14 @@
+{
+  "id": "par-led-rgb-3",
+  "name": "PAR LED RGB 3 canaux (dimmer virtuel)",
+  "manufacturer": "Générique",
+  "shortName": "PAR RGB 3ch",
+  "model": "PAR LED RGB 3ch",
+  "channelCount": 3,
+  "notes": "PAR LED sans canal de dimmer : l'intensité est appliquée en modulant le RVB (dimmer virtuel).",
+  "channels": {
+    "red":   { "channel": 1, "default": 1 },
+    "green": { "channel": 2, "default": 1 },
+    "blue":  { "channel": 3, "default": 1 }
+  }
+}

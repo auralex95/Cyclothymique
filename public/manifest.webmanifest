@@ -1,0 +1,15 @@
+{
+  "name": "Contrôleur Art-Net",
+  "short_name": "Art-Net",
+  "description": "Contrôle DMX / Art-Net tactile pour lyres et projecteurs LED",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "icons": [
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icons/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

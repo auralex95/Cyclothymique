@@ -1,0 +1,6 @@
+node_modules/
+npm-debug.log*
+# Données de show générées à l'exécution (patch, presets, réglages réseau).
+# Elles sont propres à chaque installation : on ne les versionne pas.
+data/show/
+.DS_Store

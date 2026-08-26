@@ -1,0 +1,482 @@
+{
+  "version": 1,
+  "universes": [
+    {
+      "id": 0,
+      "name": "Univers 1",
+      "net": 0,
+      "subNet": 0,
+      "universe": 0,
+      "mode": "broadcast",
+      "target": "255.255.255.255",
+      "enabled": true
+    }
+  ],
+  "fixtures": [
+    {
+      "id": "demo-generic-moving-head-16-1",
+      "name": "Lyre 1",
+      "profileId": "generic-moving-head-16",
+      "universeId": 0,
+      "address": 1
+    },
+    {
+      "id": "demo-generic-moving-head-16-2",
+      "name": "Lyre 2",
+      "profileId": "generic-moving-head-16",
+      "universeId": 0,
+      "address": 17
+    },
+    {
+      "id": "demo-generic-moving-head-16-3",
+      "name": "Lyre 3",
+      "profileId": "generic-moving-head-16",
+      "universeId": 0,
+      "address": 33
+    },
+    {
+      "id": "demo-generic-moving-head-16-4",
+      "name": "Lyre 4",
+      "profileId": "generic-moving-head-16",
+      "universeId": 0,
+      "address": 49
+    },
+    {
+      "id": "demo-generic-moving-head-16-5",
+      "name": "Lyre 5",
+      "profileId": "generic-moving-head-16",
+      "universeId": 0,
+      "address": 65
+    },
+    {
+      "id": "demo-generic-moving-head-16-6",
+      "name": "Lyre 6",
+      "profileId": "generic-moving-head-16",
+      "universeId": 0,
+      "address": 81
+    },
+    {
+      "id": "demo-wash-led-rgbw-8-1",
+      "name": "Wash 1",
+      "profileId": "wash-led-rgbw-8",
+      "universeId": 0,
+      "address": 101
+    },
+    {
+      "id": "demo-wash-led-rgbw-8-2",
+      "name": "Wash 2",
+      "profileId": "wash-led-rgbw-8",
+      "universeId": 0,
+      "address": 109
+    },
+    {
+      "id": "demo-wash-led-rgbw-8-3",
+      "name": "Wash 3",
+      "profileId": "wash-led-rgbw-8",
+      "universeId": 0,
+      "address": 117
+    },
+    {
+      "id": "demo-wash-led-rgbw-8-4",
+      "name": "Wash 4",
+      "profileId": "wash-led-rgbw-8",
+      "universeId": 0,
+      "address": 125
+    },
+    {
+      "id": "demo-par-led-rgb-4-1",
+      "name": "PAR 1",
+      "profileId": "par-led-rgb-4",
+      "universeId": 0,
+      "address": 141
+    },
+    {
+      "id": "demo-par-led-rgb-4-2",
+      "name": "PAR 2",
+      "profileId": "par-led-rgb-4",
+      "universeId": 0,
+      "address": 145
+    },
+    {
+      "id": "demo-par-led-rgb-4-3",
+      "name": "PAR 3",
+      "profileId": "par-led-rgb-4",
+      "universeId": 0,
+      "address": 149
+    },
+    {
+      "id": "demo-par-led-rgb-4-4",
+      "name": "PAR 4",
+      "profileId": "par-led-rgb-4",
+      "universeId": 0,
+      "address": 153
+    }
+  ],
+  "groups": [
+    {
+      "id": "grp-lyres",
+      "name": "Lyres",
+      "fixtureIds": [
+        "demo-generic-moving-head-16-1",
+        "demo-generic-moving-head-16-2",
+        "demo-generic-moving-head-16-3",
+        "demo-generic-moving-head-16-4",
+        "demo-generic-moving-head-16-5",
+        "demo-generic-moving-head-16-6"
+      ],
+      "mirror": true
+    },
+    {
+      "id": "grp-wash",
+      "name": "Wash",
+      "fixtureIds": [
+        "demo-wash-led-rgbw-8-1",
+        "demo-wash-led-rgbw-8-2",
+        "demo-wash-led-rgbw-8-3",
+        "demo-wash-led-rgbw-8-4"
+      ],
+      "mirror": false
+    },
+    {
+      "id": "grp-par",
+      "name": "PAR",
+      "fixtureIds": [
+        "demo-par-led-rgb-4-1",
+        "demo-par-led-rgb-4-2",
+        "demo-par-led-rgb-4-3",
+        "demo-par-led-rgb-4-4"
+      ],
+      "mirror": false
+    },
+    {
+      "id": "grp-led",
+      "name": "Toutes LED",
+      "fixtureIds": [
+        "demo-wash-led-rgbw-8-1",
+        "demo-wash-led-rgbw-8-2",
+        "demo-wash-led-rgbw-8-3",
+        "demo-wash-led-rgbw-8-4",
+        "demo-par-led-rgb-4-1",
+        "demo-par-led-rgb-4-2",
+        "demo-par-led-rgb-4-3",
+        "demo-par-led-rgb-4-4"
+      ],
+      "mirror": false
+    }
+  ],
+  "presets": [
+    {
+      "id": "pre-face",
+      "name": "Face chaude",
+      "color": "#f59e0b",
+      "fadeTime": 2,
+      "values": {
+        "demo-generic-moving-head-16-1": {
+          "pan": 0.5,
+          "tilt": 0.55,
+          "dimmer": 0.8,
+          "shutter": 1,
+          "colorWheel": 0.3137254901960784,
+          "gobo": 0,
+          "zoom": 0.4,
+          "focus": 0.5
+        },
+        "demo-generic-moving-head-16-2": {
+          "pan": 0.5,
+          "tilt": 0.55,
+          "dimmer": 0.8,
+          "shutter": 1,
+          "colorWheel": 0.3137254901960784,
+          "gobo": 0,
+          "zoom": 0.4,
+          "focus": 0.5
+        },
+        "demo-generic-moving-head-16-3": {
+          "pan": 0.5,
+          "tilt": 0.55,
+          "dimmer": 0.8,
+          "shutter": 1,
+          "colorWheel": 0.3137254901960784,
+          "gobo": 0,
+          "zoom": 0.4,
+          "focus": 0.5
+        },
+        "demo-generic-moving-head-16-4": {
+          "pan": 0.5,
+          "tilt": 0.55,
+          "dimmer": 0.8,
+          "shutter": 1,
+          "colorWheel": 0.3137254901960784,
+          "gobo": 0,
+          "zoom": 0.4,
+          "focus": 0.5
+        },
+        "demo-generic-moving-head-16-5": {
+          "pan": 0.5,
+          "tilt": 0.55,
+          "dimmer": 0.8,
+          "shutter": 1,
+          "colorWheel": 0.3137254901960784,
+          "gobo": 0,
+          "zoom": 0.4,
+          "focus": 0.5
+        },
+        "demo-generic-moving-head-16-6": {
+          "pan": 0.5,
+          "tilt": 0.55,
+          "dimmer": 0.8,
+          "shutter": 1,
+          "colorWheel": 0.3137254901960784,
+          "gobo": 0,
+          "zoom": 0.4,
+          "focus": 0.5
+        },
+        "demo-wash-led-rgbw-8-1": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0.4
+        },
+        "demo-wash-led-rgbw-8-2": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0.4
+        },
+        "demo-wash-led-rgbw-8-3": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0.4
+        },
+        "demo-wash-led-rgbw-8-4": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0.4
+        },
+        "demo-par-led-rgb-4-1": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-2": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-3": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-4": {
+          "dimmer": 0.7,
+          "shutter": 1,
+          "red": 1,
+          "green": 0.65,
+          "blue": 0.25,
+          "white": 0
+        }
+      }
+    },
+    {
+      "id": "pre-bleu",
+      "name": "Contre bleu",
+      "color": "#3b82f6",
+      "fadeTime": 3,
+      "values": {
+        "demo-generic-moving-head-16-1": {
+          "pan": 0.5,
+          "tilt": 0.75,
+          "dimmer": 1,
+          "shutter": 1,
+          "colorWheel": 0.23529411764705882,
+          "gobo": 0,
+          "zoom": 0.7
+        },
+        "demo-generic-moving-head-16-2": {
+          "pan": 0.5,
+          "tilt": 0.75,
+          "dimmer": 1,
+          "shutter": 1,
+          "colorWheel": 0.23529411764705882,
+          "gobo": 0,
+          "zoom": 0.7
+        },
+        "demo-generic-moving-head-16-3": {
+          "pan": 0.5,
+          "tilt": 0.75,
+          "dimmer": 1,
+          "shutter": 1,
+          "colorWheel": 0.23529411764705882,
+          "gobo": 0,
+          "zoom": 0.7
+        },
+        "demo-generic-moving-head-16-4": {
+          "pan": 0.5,
+          "tilt": 0.75,
+          "dimmer": 1,
+          "shutter": 1,
+          "colorWheel": 0.23529411764705882,
+          "gobo": 0,
+          "zoom": 0.7
+        },
+        "demo-generic-moving-head-16-5": {
+          "pan": 0.5,
+          "tilt": 0.75,
+          "dimmer": 1,
+          "shutter": 1,
+          "colorWheel": 0.23529411764705882,
+          "gobo": 0,
+          "zoom": 0.7
+        },
+        "demo-generic-moving-head-16-6": {
+          "pan": 0.5,
+          "tilt": 0.75,
+          "dimmer": 1,
+          "shutter": 1,
+          "colorWheel": 0.23529411764705882,
+          "gobo": 0,
+          "zoom": 0.7
+        },
+        "demo-wash-led-rgbw-8-1": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-wash-led-rgbw-8-2": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-wash-led-rgbw-8-3": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-wash-led-rgbw-8-4": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-1": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-2": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-3": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        },
+        "demo-par-led-rgb-4-4": {
+          "dimmer": 0.9,
+          "shutter": 1,
+          "red": 0,
+          "green": 0.15,
+          "blue": 1,
+          "white": 0
+        }
+      }
+    },
+    {
+      "id": "pre-noir",
+      "name": "Noir",
+      "color": "#334155",
+      "fadeTime": 1.5,
+      "values": {
+        "demo-generic-moving-head-16-1": {
+          "dimmer": 0
+        },
+        "demo-generic-moving-head-16-2": {
+          "dimmer": 0
+        },
+        "demo-generic-moving-head-16-3": {
+          "dimmer": 0
+        },
+        "demo-generic-moving-head-16-4": {
+          "dimmer": 0
+        },
+        "demo-generic-moving-head-16-5": {
+          "dimmer": 0
+        },
+        "demo-generic-moving-head-16-6": {
+          "dimmer": 0
+        },
+        "demo-wash-led-rgbw-8-1": {
+          "dimmer": 0
+        },
+        "demo-wash-led-rgbw-8-2": {
+          "dimmer": 0
+        },
+        "demo-wash-led-rgbw-8-3": {
+          "dimmer": 0
+        },
+        "demo-wash-led-rgbw-8-4": {
+          "dimmer": 0
+        },
+        "demo-par-led-rgb-4-1": {
+          "dimmer": 0
+        },
+        "demo-par-led-rgb-4-2": {
+          "dimmer": 0
+        },
+        "demo-par-led-rgb-4-3": {
+          "dimmer": 0
+        },
+        "demo-par-led-rgb-4-4": {
+          "dimmer": 0
+        }
+      }
+    }
+  ],
+  "settings": {
+    "refreshRate": 30,
+    "discovery": true,
+    "broadcastAddress": "255.255.255.255"
+  }
+}
