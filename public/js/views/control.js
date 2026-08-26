@@ -187,9 +187,11 @@ export function render(container) {
     ) : null;
 
     if (dimmer || pad) {
-      blocks.push(h('.panel', null,
-        h('h3', null, 'Intensité & position'),
-        h('div', { style: { display: 'grid', gridTemplateColumns: dimmer && pad ? '110px 1fr' : '1fr', gap: '12px', alignItems: 'start' } },
+      // Sans pavé XY (projecteur statique), le panneau reste étroit : un fader
+      // de dimmer étiré sur toute la largeur serait illisible.
+      blocks.push(h(`.panel${pad ? '.wide' : ''}`, null,
+        h('h3', null, pad ? 'Intensité & position' : 'Intensité'),
+        h('div', { style: { display: 'grid', gridTemplateColumns: pad ? '110px 1fr' : '140px', gap: '12px', alignItems: 'start' } },
           dimmer,
           pad ? h('div', null, pad, positionTools) : null
         ),

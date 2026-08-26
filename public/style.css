@@ -107,7 +107,7 @@ button, input, select { font: inherit; color: inherit; }
 /* Panneaux de contrôle : 2 colonnes dès qu'il y a la place (iPad paysage) */
 .control-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 12px; align-items: start; }
 .control-cols > .panel { margin-bottom: 0; }
-.control-cols > .panel:first-child { grid-column: 1 / -1; }
+.control-cols > .panel.wide { grid-column: 1 / -1; }   /* panneau pan/tilt : pleine largeur */
 
 /* --------------------------------------------------------------- contrôles */
 
