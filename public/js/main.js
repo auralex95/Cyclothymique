@@ -12,6 +12,7 @@ import { pct, toast } from './util.js';
 
 import * as controlView from './views/control.js';
 import * as presetsView from './views/presets.js';
+import * as effectsView from './views/effects.js';
 import * as patchView from './views/patch.js';
 import * as fixturesView from './views/fixtures.js';
 import * as networkView from './views/network.js';
@@ -20,6 +21,7 @@ import * as monitorView from './views/monitor.js';
 const VIEWS = {
   control: controlView,
   presets: presetsView,
+  effects: effectsView,
   patch: patchView,
   fixtures: fixturesView,
   network: networkView,
@@ -103,6 +105,14 @@ S.on('status', (status) => {
 });
 
 document.getElementById('offline-retry').addEventListener('click', reconnect);
+
+// Compteur d'effets actifs sur l'onglet : on voit d'un coup d'œil que ça tourne.
+const effectsTab = document.querySelector('#tabs .tab[data-view="effects"]');
+S.on('show', (show) => {
+  const running = (show?.effects || []).filter((e) => e.enabled).length;
+  effectsTab.textContent = running ? `Effets (${running})` : 'Effets';
+  effectsTab.classList.toggle('running', running > 0);
+});
 
 // La première réception de l'état déclenche le rendu initial.
 S.on('show', () => { if (!currentView) showView('control'); });

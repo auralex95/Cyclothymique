@@ -13,6 +13,7 @@
 
 import { EventEmitter } from 'node:events';
 import { attrMeta, hasVirtualDimmer } from '../shared/attributes.js';
+import { evaluateEffect } from '../shared/effects.js';
 
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
@@ -43,6 +44,8 @@ export class ShowEngine extends EventEmitter {
 
     this.timer = null;
     this.frame = 0;
+    // Horloge des effets : temps écoulé depuis le démarrage, en secondes.
+    this.startedAt = Date.now();
 
     this.syncFixtures();
   }
@@ -221,11 +224,61 @@ export class ShowEngine extends EventEmitter {
     }
   }
 
+  /** Temps écoulé depuis le démarrage du moteur, en secondes (horloge des effets). */
+  elapsed() {
+    return (Date.now() - this.startedAt) / 1000;
+  }
+
+  /**
+   * Contribution des effets en cours, par fixture.
+   *
+   * Les effets ne touchent pas aux valeurs enregistrées : ils produisent des
+   * modificateurs appliqués au rendu. Les arrêter restitue donc exactement la
+   * position, la couleur et l'intensité réglées à la main.
+   *
+   * Cumul quand plusieurs effets visent le même attribut : les décalages
+   * s'additionnent, les modulations se multiplient, un remplacement écrase.
+   *
+   * @returns {Map<string, { add: Object, mul: Object, set: Object }>}
+   */
+  computeEffects(seconds) {
+    const out = new Map();
+    for (const effect of this.show.effects || []) {
+      if (effect.enabled === false) continue;
+      // Une fixture supprimée du patch ne doit plus compter dans les décalages.
+      const targets = (effect.fixtureIds || []).filter((id) => this.values.has(id));
+      if (!targets.length) continue;
+
+      targets.forEach((id, index) => {
+        const result = evaluateEffect(effect, index, targets.length, seconds);
+        if (!result) return;
+        let entry = out.get(id);
+        if (!entry) { entry = { add: {}, mul: {}, set: {} }; out.set(id, entry); }
+        for (const [attr, value] of Object.entries(result.values)) {
+          if (result.mode === 'add') entry.add[attr] = (entry.add[attr] || 0) + value;
+          else if (result.mode === 'multiply') entry.mul[attr] = (entry.mul[attr] ?? 1) * value;
+          else entry.set[attr] = value;
+        }
+      });
+    }
+    return out;
+  }
+
+  /** Applique les modificateurs d'effet à une valeur de base. */
+  applyModifiers(mods, attr, value) {
+    if (!mods) return value;
+    if (mods.set[attr] !== undefined) value = mods.set[attr];
+    if (mods.add[attr] !== undefined) value += mods.add[attr];
+    if (mods.mul[attr] !== undefined) value *= mods.mul[attr];
+    return clamp01(value);
+  }
+
   /** Recalcule tous les buffers DMX à partir de l'état courant. */
   render() {
     for (const buf of this.buffers.values()) buf.fill(0);
 
     const masterLevel = this.blackout ? 0 : clamp01(this.master);
+    const effects = this.computeEffects(this.elapsed());
 
     for (const fx of this.show.fixtures) {
       const profile = this.getProfile(fx.profileId);
@@ -234,8 +287,11 @@ export class ShowEngine extends EventEmitter {
       const vals = this.values.get(fx.id);
       if (!vals) continue;
 
-      // Intensité effective de la fixture (dimmer local × master × blackout).
-      const dimmer = clamp01((vals.get('dimmer') ?? (profile.channels.dimmer ? 0 : 1)) * masterLevel);
+      const mods = effects.get(fx.id);
+
+      // Intensité effective : dimmer réglé × effets × master × blackout.
+      const dimmerBase = vals.get('dimmer') ?? (profile.channels.dimmer ? 0 : 1);
+      const dimmer = clamp01(this.applyModifiers(mods, 'dimmer', dimmerBase) * masterLevel);
       // Sans canal de dimmer physique, on module les couleurs (dimmer virtuel).
       const virtualDimmer = hasVirtualDimmer(profile);
 
@@ -244,9 +300,10 @@ export class ShowEngine extends EventEmitter {
         if (value === undefined) value = chan.default ?? attrMeta(attr).default;
 
         if (attr === 'dimmer') {
-          value = dimmer;
-        } else if (virtualDimmer && isColorAttr(attr)) {
-          value = value * dimmer;
+          value = dimmer;                              // effets déjà pris en compte
+        } else {
+          value = this.applyModifiers(mods, attr, value);
+          if (virtualDimmer && isColorAttr(attr)) value = value * dimmer;
         }
         this.writeChannel(buf, fx.address, chan, value);
       }

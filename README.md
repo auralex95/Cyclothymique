@@ -51,7 +51,11 @@ Tests : `npm test` (paquets Art-Net, rendu DMX, 16 bits, fades, keep-alive).
    ou l'IP d'un node précis, ajuster la fréquence (30 Hz par défaut).
 4. **Contrôle** — sélectionner un ou plusieurs projecteurs (ou un groupe), puis régler
    dimmer, pan/tilt, couleur, gobos, zoom…
-5. **Presets** — enregistrer un look, le rappeler d'un tap avec le temps de fade voulu.
+5. **Effets** — appliquer un mouvement (cercle, huit, ballyhoo…), un effet de dimmer
+   (chase, pulse, rampe) ou de couleur (arc-en-ciel, chase) à la sélection, et régler
+   taille, vitesse et décalage en direct.
+6. **Presets** — enregistrer un look, le rappeler d'un tap avec le temps de fade voulu.
+   Un look mémorise aussi les effets en cours.
 
 Un show d'exemple (6 lyres, 4 wash, 4 PAR, groupes et looks) est fourni :
 `data/examples/demo-show.json` → onglet **Patch → Importer un show**.
@@ -70,6 +74,7 @@ server/                 Backend Node.js
 
 shared/
   attributes.js         Dictionnaire des attributs, partagé serveur ↔ navigateur
+  effects.js            Catalogue des effets et formes d'onde (partagé aussi)
 
 public/                 Frontend (modules ES servis tels quels, aucun build)
   index.html            Coquille : bandeau, onglets, voile hors ligne
@@ -80,7 +85,7 @@ public/                 Frontend (modules ES servis tels quels, aucun build)
     state.js            État local (miroir du serveur) + sélection
     util.js             Helpers DOM, glissé tactile (Pointer Events), toasts
     components/         Faders, pavé XY pan/tilt, color picker
-    views/              Contrôle, Presets, Patch, Fixtures, Réseau, Debug
+    views/              Contrôle, Presets, Effets, Patch, Fixtures, Réseau, Debug
   sw.js                 Service worker (coquille PWA ; jamais le temps réel)
 
 data/
@@ -159,6 +164,9 @@ puis les mises à jour au fil de l'eau.
 | `preset:record` | `{ name, fixtureIds, fadeTime }` | Instantané (tout ou sélection) |
 | `preset:recall` | `{ id, fadeTime }` | Rappel avec fondu |
 | `preset:update` / `preset:remove` | `{ id, changes }` / `id` | Édition |
+| `effect:add` | `{ preset, fixtureIds }` | Démarre un effet sur une sélection |
+| `effect:update` | `{ id, changes }` | Taille, vitesse, décalage, sens, onde, pause |
+| `effect:remove` / `effect:clear` | `id` / — | Arrêt d'un effet / de tous |
 | `fixture:save` | profil complet | Création / modification d'un profil (réponse : `{ ok, errors }`) |
 | `fixture:remove` | `id` | Suppression, refusée si le profil est patché |
 | `universes:save` / `settings:save` | tableau / objet | Réseau et fréquence |
@@ -243,6 +251,39 @@ en intensité — le dimmer module alors ses composantes de couleur.
 
 ---
 
+## Effets
+
+Un effet s'applique à une sélection de projecteurs et tourne en continu côté serveur.
+**Il ne modifie jamais les valeurs enregistrées** : il oscille autour de la position réglée,
+module l'intensité ou remplace la couleur au moment du rendu. L'arrêter restitue donc
+exactement la base — aucune position à retrouver après coup.
+
+| Famille | Effets |
+|---|---|
+| Mouvement | Cercle, Huit, Balayage pan, Balayage tilt, Ballyhoo, Hochement |
+| Intensité | Pulse, Chase, Rampe, Scintillement |
+| Couleur | Arc-en-ciel, Chase couleur |
+
+Quatre réglages, modifiables en direct :
+
+- **Taille** — amplitude crête à crête. 100 % = toute la course de l'attribut ;
+  pour un effet de dimmer, c'est la profondeur de modulation (100 % = jusqu'à l'extinction).
+- **Vitesse** — en BPM, un cycle par temps (60 BPM = un cycle par seconde).
+- **Décalage entre projecteurs** — répartition de la phase sur le groupe.
+  0° = tout le monde ensemble, 360° = un tour complet réparti sur la sélection (c'est ce
+  qui transforme un pulse en chase).
+- **Forme d'onde** — sinus, triangle, créneau, dent de scie, aléatoire.
+  Plus le sens de rotation, et la mise en pause sans perdre les réglages.
+
+Les projecteurs qui ne gèrent pas la fonction visée sont ignorés à l'ajout (un PAR sans
+pan/tilt n'entre pas dans un cercle) et le nombre retenu est indiqué. Plusieurs effets
+peuvent viser le même attribut : les mouvements s'additionnent, les modulations d'intensité
+se multiplient. Le blackout et le master restent prioritaires sur tout.
+
+Les effets sont enregistrés dans les looks : rappeler un preset restaure les effets qu'il
+contenait — et un look enregistré sans effet arrête ceux en cours. Contrairement aux valeurs,
+les effets ne sont pas fondus : ils reprennent immédiatement.
+
 ## Ergonomie tactile
 
 - **Pavé pan/tilt** : glissé **relatif** (le point ne saute pas sous le doigt, indispensable
@@ -301,6 +342,6 @@ l'adresse de broadcast peut devoir être `2.255.255.255` ou `10.255.255.255`.
 
 ## Limites assumées
 
-Outil de contrôle **rapide et manuel** : pas de chases programmables, pas de timeline,
-pas de tracking de cues comme sur une console. Les looks et le fade au rappel couvrent
-l'usage visé ; le reste reste du domaine de la console principale.
+Outil de contrôle **rapide et manuel** : pas de timeline, pas de tracking de cues comme
+sur une console, et pas d'enchaînement automatique de looks. Les effets, les looks et le
+fade au rappel couvrent l'usage visé ; le reste reste du domaine de la console principale.

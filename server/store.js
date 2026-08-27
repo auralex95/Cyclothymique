@@ -38,7 +38,8 @@ export function defaultShow() {
     ],
     fixtures: [],   // { id, name, profileId, universeId, address }
     groups: [],     // { id, name, fixtureIds: [], mirror: false }
-    presets: [],    // { id, name, color, values: { fixtureId: { attr: value } } }
+    presets: [],    // { id, name, color, values: { fixtureId: { attr: value } }, effects: [] }
+    effects: [],    // { id, name, preset, fixtureIds, bpm, size, spread, wave, direction, enabled }
     settings: {
       refreshRate: 30,              // Hz d'émission Art-Net (keep-alive inclus)
       discovery: true,              // ArtPoll périodique

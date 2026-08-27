@@ -80,6 +80,9 @@ button, input, select { font: inherit; color: inherit; }
   border-radius: var(--radius); color: var(--muted); font-weight: 600;
 }
 .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Onglet Effets quand des effets tournent : liseré vert, visible même inactif */
+.tab.running { border-color: var(--accent-2); color: var(--accent-2); }
+.tab.running.active { color: #fff; }
 
 /* ------------------------------------------------------------------- vues */
 
@@ -291,3 +294,6 @@ table.patch input[type="text"], table.patch input[type="number"], table.patch se
 }
 .profile-card.current { border-color: var(--accent); }
 .profile-card .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+/* Effets en cours : deux colonnes dès qu'il y a la place (iPad paysage) */
+.effect-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 10px; align-items: start; }

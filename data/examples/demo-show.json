@@ -295,7 +295,8 @@
           "blue": 0.25,
           "white": 0
         }
-      }
+      },
+      "effects": []
     },
     {
       "id": "pre-bleu",
@@ -421,7 +422,45 @@
           "blue": 1,
           "white": 0
         }
-      }
+      },
+      "effects": [
+        {
+          "id": "fx-demo-cercle",
+          "name": "Cercle",
+          "preset": "circle",
+          "fixtureIds": [
+            "demo-generic-moving-head-16-1",
+            "demo-generic-moving-head-16-2",
+            "demo-generic-moving-head-16-3",
+            "demo-generic-moving-head-16-4",
+            "demo-generic-moving-head-16-5",
+            "demo-generic-moving-head-16-6"
+          ],
+          "bpm": 24,
+          "size": 0.35,
+          "spread": 1,
+          "wave": "sin",
+          "direction": 1,
+          "enabled": true
+        },
+        {
+          "id": "fx-demo-chase",
+          "name": "Chase dimmer",
+          "preset": "dimmerChase",
+          "fixtureIds": [
+            "demo-par-led-rgb-4-1",
+            "demo-par-led-rgb-4-2",
+            "demo-par-led-rgb-4-3",
+            "demo-par-led-rgb-4-4"
+          ],
+          "bpm": 120,
+          "size": 1,
+          "spread": 1,
+          "wave": "square",
+          "direction": 1,
+          "enabled": true
+        }
+      ]
     },
     {
       "id": "pre-noir",
@@ -471,12 +510,14 @@
         "demo-par-led-rgb-4-4": {
           "dimmer": 0
         }
-      }
+      },
+      "effects": []
     }
   ],
   "settings": {
     "refreshRate": 30,
     "discovery": true,
     "broadcastAddress": "255.255.255.255"
-  }
+  },
+  "effects": []
 }

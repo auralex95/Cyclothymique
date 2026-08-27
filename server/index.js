@@ -20,6 +20,7 @@ import {
   saveFixtureProfile, deleteFixtureProfile
 } from './store.js';
 import { validateProfile } from './fixtureProfile.js';
+import { EFFECT_PRESETS, defaultEffectSettings } from '../shared/effects.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -153,6 +154,7 @@ function applyShow(incoming) {
   show.fixtures = incoming.fixtures || [];
   show.groups = incoming.groups || [];
   show.presets = incoming.presets || [];
+  show.effects = incoming.effects || [];
   show.settings = { ...base.settings, ...(incoming.settings || {}) };
   engine.values.clear();
   engine.fades.clear();
@@ -260,9 +262,11 @@ io.on('connection', (socket) => {
   socket.on('patch:remove', (ids) => {
     const list = Array.isArray(ids) ? ids : [ids];
     show.fixtures = show.fixtures.filter((f) => !list.includes(f.id));
-    // On nettoie aussi les groupes et les presets qui référençaient ces fixtures.
+    // On nettoie aussi groupes, presets et effets qui référençaient ces fixtures.
     for (const g of show.groups) g.fixtureIds = g.fixtureIds.filter((id) => !list.includes(id));
     for (const p of show.presets) for (const id of list) delete p.values[id];
+    for (const e of show.effects) e.fixtureIds = e.fixtureIds.filter((id) => !list.includes(id));
+    show.effects = show.effects.filter((e) => e.fixtureIds.length);
     showChanged();
   });
 
@@ -312,6 +316,52 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
+  // ---- Effets (mouvement, dimmer, couleur) ---------------------------------
+
+  // Un effet s'applique à une sélection de projecteurs et tourne en continu.
+  // Il ne modifie pas les valeurs enregistrées : l'arrêter restitue la base.
+  socket.on('effect:add', (req = {}) => {
+    const preset = EFFECT_PRESETS[req.preset];
+    if (!preset || !Array.isArray(req.fixtureIds) || !req.fixtureIds.length) return;
+    const fixtureIds = req.fixtureIds.filter((id) => show.fixtures.some((f) => f.id === id));
+    if (!fixtureIds.length) return;
+
+    show.effects.push({
+      id: `fx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+      name: req.name || preset.label,
+      preset: req.preset,
+      fixtureIds,
+      ...defaultEffectSettings(req.preset)
+    });
+    showChanged();
+  });
+
+  socket.on('effect:update', ({ id, changes } = {}) => {
+    const effect = show.effects.find((e) => e.id === id);
+    if (!effect || !changes) return;
+    if (typeof changes.name === 'string') effect.name = changes.name.slice(0, 40);
+    if (Number.isFinite(changes.bpm)) effect.bpm = Math.max(1, Math.min(600, changes.bpm));
+    if (Number.isFinite(changes.size)) effect.size = Math.max(0, Math.min(1, changes.size));
+    if (Number.isFinite(changes.spread)) effect.spread = Math.max(0, Math.min(4, changes.spread));
+    if (Number.isFinite(changes.direction)) effect.direction = changes.direction < 0 ? -1 : 1;
+    if (typeof changes.wave === 'string') effect.wave = changes.wave;
+    if (typeof changes.enabled === 'boolean') effect.enabled = changes.enabled;
+    if (Array.isArray(changes.fixtureIds)) {
+      effect.fixtureIds = changes.fixtureIds.filter((fid) => show.fixtures.some((f) => f.id === fid));
+    }
+    showChanged();
+  });
+
+  socket.on('effect:remove', (id) => {
+    show.effects = show.effects.filter((e) => e.id !== id);
+    showChanged();
+  });
+
+  socket.on('effect:clear', () => {
+    show.effects = [];
+    showChanged();
+  });
+
   // ---- Presets ("looks") ---------------------------------------------------
 
   socket.on('preset:record', (req = {}) => {
@@ -321,7 +371,14 @@ io.on('connection', (socket) => {
       name: req.name || `Look ${show.presets.length + 1}`,
       color: req.color || '#3b82f6',
       fadeTime: Number.isFinite(req.fadeTime) ? req.fadeTime : 1,
-      values: engine.snapshot(fixtureIds)
+      values: engine.snapshot(fixtureIds),
+      // Un look mémorise aussi les effets en cours : le rappeler restitue le
+      // mouvement, pas seulement les positions figées.
+      effects: JSON.parse(JSON.stringify(
+        fixtureIds
+          ? show.effects.filter((e) => e.fixtureIds.some((id) => fixtureIds.includes(id)))
+          : show.effects
+      ))
     };
     // Enregistrer sur le même nom écrase le preset existant (usage rapide en live).
     const idx = show.presets.findIndex((p) => p.name === preset.name);
@@ -335,6 +392,11 @@ io.on('connection', (socket) => {
     if (!preset) return;
     const fade = Number.isFinite(fadeTime) ? fadeTime : (preset.fadeTime ?? 0);
     engine.applyValues(preset.values, fade);
+    // Les effets sont repris tels quels (sans fondu) : un look sans effet
+    // enregistré arrête donc les effets en cours, ce qui est le comportement attendu.
+    show.effects = JSON.parse(JSON.stringify(preset.effects || []));
+    saveShowDebounced(show);
+    io.emit('show', show);
     io.emit('preset:recalled', { id: preset.id, fadeTime: fade });
     if (fade <= 0) io.emit('values:full', engine.snapshot());
   });
