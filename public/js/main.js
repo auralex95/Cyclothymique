@@ -6,7 +6,8 @@
  */
 
 import * as S from './state.js';
-import { connect, reconnect, setMaster, setBlackout } from './net.js';
+import { connect, reconnect, setMaster, setBlackout, authenticate, logout } from './net.js';
+import { askPin } from './components/pinpad.js';
 import { attachHFader } from './components/fader.js';
 import { pct, toast } from './util.js';
 
@@ -17,8 +18,10 @@ import * as patchView from './views/patch.js';
 import * as fixturesView from './views/fixtures.js';
 import * as networkView from './views/network.js';
 import * as monitorView from './views/monitor.js';
+import * as liveView from './views/live.js';
 
 const VIEWS = {
+  live: liveView,
   control: controlView,
   presets: presetsView,
   effects: effectsView,
@@ -35,6 +38,7 @@ const offlineEl = document.getElementById('offline');
 const offlineDetailEl = document.getElementById('offline-detail');
 const masterValueEl = document.getElementById('master-value');
 const blackoutBtn = document.getElementById('blackout-btn');
+const modeBtn = document.getElementById('mode-btn');
 
 let currentView = null;
 let disposeView = null;
@@ -55,6 +59,58 @@ document.getElementById('tabs').addEventListener('click', (ev) => {
   const tab = ev.target.closest('.tab');
   if (tab) showView(tab.dataset.view);
 });
+
+// ---------------------------------------------------------- modes Live / Régie
+
+/**
+ * Deux modes d'usage :
+ *   - Live  : écran d'exploitation, uniquement les looks et les effets.
+ *   - Régie : programmation complète (patch, profils, presets, effets, réseau).
+ *
+ * Le mode choisi est mémorisé sur l'appareil : un Raspberry Pi en régie fixe
+ * rouvre son écran Live tout seul après une coupure de courant.
+ */
+const MODE_KEY = 'artnet.mode';
+
+function storedMode() {
+  // ?mode=live (ou ?mode=admin) l'emporte : c'est ce qu'utilise le mode kiosque.
+  const forced = new URLSearchParams(location.search).get('mode');
+  if (forced === 'live' || forced === 'admin') return forced;
+  try {
+    return localStorage.getItem(MODE_KEY) === 'admin' ? 'admin' : 'live';
+  } catch {
+    return 'live';   // navigation privée : on retombe sur le mode d'exploitation
+  }
+}
+
+function applyMode(mode) {
+  S.state.mode = mode;
+  try { localStorage.setItem(MODE_KEY, mode); } catch { /* stockage indisponible */ }
+  document.body.classList.toggle('live-mode', mode === 'live');
+  modeBtn.textContent = mode === 'live' ? 'Régie' : 'Mode Live';
+  showView(mode === 'live' ? 'live' : 'control');
+}
+
+/** Passage en régie : demande le code si le show en définit un. */
+async function enterAdminMode() {
+  if (S.state.isAdmin) return applyMode('admin');
+
+  const pin = await askPin({
+    title: 'Mode Régie',
+    hint: 'Entrez le code d’accès défini dans l’onglet Réseau.'
+  });
+  if (pin === null) return;
+  if (await authenticate(pin)) applyMode('admin');
+  else toast('Code incorrect', 3000);
+}
+
+modeBtn.addEventListener('click', async () => {
+  if (S.state.mode === 'live') await enterAdminMode();
+  else { await logout(); applyMode('live'); }
+});
+
+// Un refus du serveur (action de régie tentée en mode Live) est expliqué à l'écran.
+S.on('denied', (message) => toast(message || 'Action réservée au mode Régie.', 3500));
 
 // ------------------------------------------------------------ master & blackout
 
@@ -114,8 +170,8 @@ S.on('show', (show) => {
   effectsTab.classList.toggle('running', running > 0);
 });
 
-// La première réception de l'état déclenche le rendu initial.
-S.on('show', () => { if (!currentView) showView('control'); });
+// La première réception de l'état déclenche le rendu initial, dans le mode retenu.
+S.on('show', () => { if (!currentView) applyMode(storedMode()); });
 
 // ----------------------------------------------------------------- démarrage
 

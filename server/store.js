@@ -43,7 +43,10 @@ export function defaultShow() {
     settings: {
       refreshRate: 30,              // Hz d'émission Art-Net (keep-alive inclus)
       discovery: true,              // ArtPoll périodique
-      broadcastAddress: '255.255.255.255'
+      broadcastAddress: '255.255.255.255',
+      // Code d'accès au mode Régie. Vide = aucune protection (tout le monde
+      // peut programmer). Voir le garde-fou décrit dans server/index.js.
+      adminPin: ''
     }
   };
 }

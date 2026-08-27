@@ -21,7 +21,9 @@ export const state = {
   selection: [],       // ids de fixtures sélectionnés (ordre = ordre de sélection)
   mirror: false,       // miroir pan pour la sélection
   fine: false,         // mode précision du pavé XY
-  fadeTime: 1          // temps de fade au rappel des presets (secondes)
+  fadeTime: 1,         // temps de fade au rappel des presets (secondes)
+  isAdmin: true,       // droits de programmation (vrai tant qu'aucun code n'est défini)
+  mode: 'live'         // 'live' (exploitation) ou 'admin' (régie)
 };
 
 export function on(event, cb) {

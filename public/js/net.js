@@ -13,6 +13,9 @@ import { state, emit, applyValues } from './state.js';
 const SEND_HZ = 40;
 
 let socket = null;
+// Code du mode Régie, gardé en mémoire pour les requêtes REST (import de show,
+// de profil…). Jamais écrit sur le disque du navigateur.
+let adminPin = null;
 /** Valeurs en attente d'envoi : clé "fixtureId|attr" -> entrée. */
 const pending = new Map();
 let flushTimer = null;
@@ -20,6 +23,9 @@ let flushTimer = null;
 export function connect() {
   // io() est fourni par /socket.io/socket.io.js, servi par le backend.
   socket = io({ transports: ['websocket', 'polling'], reconnectionDelayMax: 3000 });
+
+  // Exposée pour le diagnostic depuis la console du navigateur (et les tests).
+  window.__artnetSocket = socket;
 
   socket.on('connect', () => {
     state.connected = true;
@@ -37,6 +43,9 @@ export function connect() {
   });
 
   // État complet à la connexion (et après reconnexion).
+  // Refus du serveur : action réservée au mode Régie.
+  socket.on('denied', (message) => emit('denied', message));
+
   socket.on('init', (payload) => {
     state.show = payload.show;
     state.library = payload.library;
@@ -44,6 +53,7 @@ export function connect() {
     state.master = payload.master;
     state.blackout = payload.blackout;
     state.status = payload.status;
+    state.isAdmin = payload.isAdmin !== false;
     // On purge la sélection des fixtures qui n'existent plus.
     state.selection = state.selection.filter((id) => payload.show.fixtures.some((f) => f.id === id));
     emit('show', state.show);
@@ -75,6 +85,38 @@ export function connect() {
     emit('library', library);
   });
   socket.on('preset:recalled', (info) => emit('preset:recalled', info));
+}
+
+/**
+ * Passage en mode Régie : le serveur vérifie le code et marque la connexion.
+ * @returns {Promise<boolean>} vrai si les droits sont accordés
+ */
+export function authenticate(pin) {
+  return new Promise((resolve) => {
+    socket?.emit('auth:admin', pin, (result) => {
+      state.isAdmin = !!result?.isAdmin;
+      if (result?.ok) adminPin = pin;
+      emit('admin', state.isAdmin);
+      resolve(!!result?.ok);
+    });
+  });
+}
+
+/** Retour en mode Live : les droits sont relâchés si un code est défini. */
+export function logout() {
+  return new Promise((resolve) => {
+    socket?.emit('auth:logout', (result) => {
+      state.isAdmin = result?.isAdmin !== false;
+      adminPin = null;
+      emit('admin', state.isAdmin);
+      resolve(state.isAdmin);
+    });
+  });
+}
+
+/** En-têtes à joindre aux requêtes REST qui modifient le show. */
+export function adminHeaders(base = {}) {
+  return adminPin ? { ...base, 'X-Admin-Pin': adminPin } : { ...base };
 }
 
 /** Force une tentative de reconnexion immédiate (bouton du voile hors ligne). */

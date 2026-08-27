@@ -90,6 +90,17 @@ app.use(express.json({ limit: '5mb' }));
 app.use(express.static(path.join(ROOT, 'public')));
 app.use('/shared', express.static(path.join(ROOT, 'shared')));
 
+/**
+ * Même garde-fou que sur le WebSocket, pour les routes qui modifient le show.
+ * Le client envoie le code dans l'en-tête X-Admin-Pin une fois le mode Régie
+ * déverrouillé. Sans code configuré, la route reste ouverte.
+ */
+function requireAdmin(req, res, next) {
+  const expected = adminPin();
+  if (!expected || String(req.get('X-Admin-Pin') || '') === expected) return next();
+  res.status(403).json({ errors: ['Mode Régie requis : entrez le code d’accès.'] });
+}
+
 /** Bibliothèque de profils. */
 app.get('/api/fixtures', (_req, res) => res.json(library));
 
@@ -102,14 +113,14 @@ app.get('/api/fixtures/:id', (req, res) => {
 });
 
 /** Création ou modification d'un profil de fixture (prise en compte immédiate). */
-app.post('/api/fixtures', (req, res) => {
+app.post('/api/fixtures', requireAdmin, (req, res) => {
   const result = saveProfile(req.body);
   if (!result.ok) return res.status(400).json({ errors: result.errors });
   res.json({ ok: true, profile: result.profile });
 });
 
 /** Suppression d'un profil, refusée tant qu'un projecteur l'utilise. */
-app.delete('/api/fixtures/:id', (req, res) => {
+app.delete('/api/fixtures/:id', requireAdmin, (req, res) => {
   const inUse = fixturesUsing(req.params.id);
   if (inUse.length) {
     return res.status(409).json({
@@ -132,7 +143,7 @@ app.get('/api/show', (_req, res) => {
 });
 
 /** Import d'un show exporté précédemment. */
-app.post('/api/show', (req, res) => {
+app.post('/api/show', requireAdmin, (req, res) => {
   const incoming = req.body;
   if (!incoming || !Array.isArray(incoming.fixtures) || !Array.isArray(incoming.universes)) {
     return res.status(400).json({ error: 'Fichier de show invalide' });
@@ -165,6 +176,38 @@ function applyShow(incoming) {
   io.emit('values:full', engine.snapshot());
 }
 
+/**
+ * Deux modes d'usage :
+ *   - « Live » : rappeler des looks, master, blackout, mettre un effet en pause.
+ *   - « Régie » : tout le reste (patch, profils, presets, effets, réseau).
+ *
+ * Quand un code est défini dans les réglages, seules les connexions
+ * authentifiées peuvent programmer. C'est un garde-fou contre les fausses
+ * manœuvres en exploitation — pas un mécanisme de sécurité : le réseau
+ * technique est supposé de confiance (pas de HTTPS, pas de comptes).
+ */
+function adminPin() {
+  return String(show.settings.adminPin || '');
+}
+
+/** Sans code défini, tout le monde a les droits de programmation. */
+function isAdminSocket(socket) {
+  return !adminPin() || socket.data.isAdmin === true;
+}
+
+/**
+ * Enveloppe un gestionnaire d'événement réservé au mode Régie.
+ * L'accusé de réception éventuel explique le refus au client.
+ */
+function adminOnly(socket, handler) {
+  return (...args) => {
+    if (isAdminSocket(socket)) return handler(...args);
+    const ack = args[args.length - 1];
+    if (typeof ack === 'function') ack({ ok: false, errors: ['Mode Régie requis : entrez le code d’accès.'] });
+    socket.emit('denied', 'Action réservée au mode Régie.');
+  };
+}
+
 function buildStatus() {
   return {
     artnet: {
@@ -178,7 +221,9 @@ function buildStatus() {
     nodes: sender.listNodes(),
     clients: io.engine.clientsCount,
     master: engine.master,
-    blackout: engine.blackout
+    blackout: engine.blackout,
+    // Le code lui-même n'est jamais envoyé aux clients : seulement son existence.
+    adminPinSet: adminPin().length > 0
   };
 }
 
@@ -186,6 +231,25 @@ function buildStatus() {
 
 io.on('connection', (socket) => {
   console.log(`[socket] client connecté (${socket.id})`);
+  // Sans code défini, la connexion a d'emblée les droits de programmation.
+  socket.data.isAdmin = !adminPin();
+
+  /** Passage en mode Régie : vérification du code. */
+  socket.on('auth:admin', (pin, ack) => {
+    const expected = adminPin();
+    const ok = !expected || String(pin ?? '') === expected;
+    if (ok) socket.data.isAdmin = true;
+    if (typeof ack === 'function') ack({ ok, isAdmin: socket.data.isAdmin });
+  });
+
+  /** Déclare un événement réservé au mode Régie. */
+  const onAdmin = (event, handler) => socket.on(event, adminOnly(socket, handler));
+
+  /** Retour en mode Live : on relâche les droits si un code protège la régie. */
+  socket.on('auth:logout', (ack) => {
+    socket.data.isAdmin = !adminPin();
+    if (typeof ack === 'function') ack({ ok: true, isAdmin: socket.data.isAdmin });
+  });
 
   // État complet à la connexion : l'UI se reconstruit entièrement à partir de là.
   socket.emit('init', {
@@ -194,13 +258,14 @@ io.on('connection', (socket) => {
     values: engine.snapshot(),
     master: engine.master,
     blackout: engine.blackout,
-    status: buildStatus()
+    status: buildStatus(),
+    isAdmin: socket.data.isAdmin
   });
 
   // ---- Contrôle temps réel -------------------------------------------------
 
   // Le client envoie des lots de valeurs (throttlés à ~40 Hz de son côté).
-  socket.on('values:set', (entries) => {
+  onAdmin('values:set', (entries) => {
     if (!Array.isArray(entries)) return;
     const changed = engine.setValues(entries);
     if (changed.length) socket.broadcast.emit('values', changed);
@@ -223,7 +288,7 @@ io.on('connection', (socket) => {
    * (ex : 8 lyres à la suite), chaque fixture étant décalée du nombre de canaux
    * du profil (ou d'un pas personnalisé).
    */
-  socket.on('patch:add', (req = {}) => {
+  onAdmin('patch:add', (req = {}) => {
     const profile = engine.getProfile(req.profileId);
     if (!profile) return;
     const count = Math.max(1, Math.min(64, Number(req.count) || 1));
@@ -246,7 +311,7 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
-  socket.on('patch:update', ({ id, changes } = {}) => {
+  onAdmin('patch:update', ({ id, changes } = {}) => {
     const fx = show.fixtures.find((f) => f.id === id);
     if (!fx || !changes) return;
     if (typeof changes.name === 'string') fx.name = changes.name;
@@ -259,7 +324,7 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
-  socket.on('patch:remove', (ids) => {
+  onAdmin('patch:remove', (ids) => {
     const list = Array.isArray(ids) ? ids : [ids];
     show.fixtures = show.fixtures.filter((f) => !list.includes(f.id));
     // On nettoie aussi groupes, presets et effets qui référençaient ces fixtures.
@@ -274,12 +339,12 @@ io.on('connection', (socket) => {
 
   // Création / modification d'un profil depuis l'interface : pas de fichier à
   // déposer à la main, pas de redémarrage du serveur.
-  socket.on('fixture:save', (profile, ack) => {
+  onAdmin('fixture:save', (profile, ack) => {
     const result = saveProfile(profile);
     if (typeof ack === 'function') ack(result);
   });
 
-  socket.on('fixture:remove', (id, ack) => {
+  onAdmin('fixture:remove', (id, ack) => {
     const inUse = fixturesUsing(id);
     if (inUse.length) {
       return ack?.({ ok: false, errors: [`Profil utilisé par ${inUse.length} projecteur(s) : ${inUse.map((f) => f.name).join(', ')}`] });
@@ -295,7 +360,7 @@ io.on('connection', (socket) => {
 
   // ---- Groupes -------------------------------------------------------------
 
-  socket.on('group:save', (group = {}) => {
+  onAdmin('group:save', (group = {}) => {
     if (!group.name || !Array.isArray(group.fixtureIds)) return;
     const existing = show.groups.find((g) => g.id === group.id);
     if (existing) {
@@ -311,7 +376,7 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
-  socket.on('group:remove', (id) => {
+  onAdmin('group:remove', (id) => {
     show.groups = show.groups.filter((g) => g.id !== id);
     showChanged();
   });
@@ -320,7 +385,7 @@ io.on('connection', (socket) => {
 
   // Un effet s'applique à une sélection de projecteurs et tourne en continu.
   // Il ne modifie pas les valeurs enregistrées : l'arrêter restitue la base.
-  socket.on('effect:add', (req = {}) => {
+  onAdmin('effect:add', (req = {}) => {
     const preset = EFFECT_PRESETS[req.preset];
     if (!preset || !Array.isArray(req.fixtureIds) || !req.fixtureIds.length) return;
     const fixtureIds = req.fixtureIds.filter((id) => show.fixtures.some((f) => f.id === id));
@@ -339,6 +404,14 @@ io.on('connection', (socket) => {
   socket.on('effect:update', ({ id, changes } = {}) => {
     const effect = show.effects.find((e) => e.id === id);
     if (!effect || !changes) return;
+    // En mode Live, on peut mettre un effet en pause ou le relancer, rien d'autre.
+    if (!isAdminSocket(socket)) {
+      const keys = Object.keys(changes);
+      if (keys.length !== 1 || keys[0] !== 'enabled') {
+        socket.emit('denied', 'Modifier les réglages d’un effet demande le mode Régie.');
+        return;
+      }
+    }
     if (typeof changes.name === 'string') effect.name = changes.name.slice(0, 40);
     if (Number.isFinite(changes.bpm)) effect.bpm = Math.max(1, Math.min(600, changes.bpm));
     if (Number.isFinite(changes.size)) effect.size = Math.max(0, Math.min(1, changes.size));
@@ -352,19 +425,19 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
-  socket.on('effect:remove', (id) => {
+  onAdmin('effect:remove', (id) => {
     show.effects = show.effects.filter((e) => e.id !== id);
     showChanged();
   });
 
-  socket.on('effect:clear', () => {
+  onAdmin('effect:clear', () => {
     show.effects = [];
     showChanged();
   });
 
   // ---- Presets ("looks") ---------------------------------------------------
 
-  socket.on('preset:record', (req = {}) => {
+  onAdmin('preset:record', (req = {}) => {
     const fixtureIds = Array.isArray(req.fixtureIds) && req.fixtureIds.length ? req.fixtureIds : null;
     const preset = {
       id: `pre-${Date.now().toString(36)}`,
@@ -401,7 +474,7 @@ io.on('connection', (socket) => {
     if (fade <= 0) io.emit('values:full', engine.snapshot());
   });
 
-  socket.on('preset:update', ({ id, changes } = {}) => {
+  onAdmin('preset:update', ({ id, changes } = {}) => {
     const preset = show.presets.find((p) => p.id === id);
     if (!preset || !changes) return;
     if (typeof changes.name === 'string') preset.name = changes.name;
@@ -410,14 +483,14 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
-  socket.on('preset:remove', (id) => {
+  onAdmin('preset:remove', (id) => {
     show.presets = show.presets.filter((p) => p.id !== id);
     showChanged();
   });
 
   // ---- Réseau / réglages ---------------------------------------------------
 
-  socket.on('universes:save', (universes) => {
+  onAdmin('universes:save', (universes) => {
     if (!Array.isArray(universes)) return;
     show.universes = universes.map((u, i) => ({
       id: Number.isFinite(u.id) ? u.id : i,
@@ -432,7 +505,7 @@ io.on('connection', (socket) => {
     showChanged();
   });
 
-  socket.on('settings:save', (settings = {}) => {
+  onAdmin('settings:save', (settings = {}) => {
     if (Number.isFinite(settings.refreshRate)) {
       show.settings.refreshRate = clampInt(settings.refreshRate, 1, 60);
     }
@@ -440,13 +513,20 @@ io.on('connection', (socket) => {
       show.settings.broadcastAddress = settings.broadcastAddress;
     }
     if (typeof settings.discovery === 'boolean') show.settings.discovery = settings.discovery;
+    if (typeof settings.adminPin === 'string') {
+      // Seul un client déjà en régie arrive ici (settings:save est protégé) :
+      // définir ou retirer le code ne verrouille donc jamais son auteur dehors.
+      show.settings.adminPin = settings.adminPin.slice(0, 12);
+      socket.data.isAdmin = true;
+      io.emit('status', buildStatus());
+    }
     engine.start(); // applique la nouvelle fréquence
     showChanged();
   });
 
   socket.on('artnet:poll', () => sender.poll(show.settings.broadcastAddress));
 
-  socket.on('show:reset', () => applyShow(defaultShow()));
+  onAdmin('show:reset', () => applyShow(defaultShow()));
 
   // ---- Monitoring DMX ------------------------------------------------------
 

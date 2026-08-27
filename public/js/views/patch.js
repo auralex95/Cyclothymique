@@ -8,7 +8,7 @@
 
 import { h, mount, toast } from '../util.js';
 import * as S from '../state.js';
-import { send } from '../net.js';
+import { send, adminHeaders } from '../net.js';
 
 export function render(container) {
   const unsubs = [];
@@ -215,7 +215,9 @@ export function render(container) {
       try {
         const json = JSON.parse(await file.text());
         const res = await fetch('/api/show', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json)
+          method: 'POST',
+          headers: adminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(json)
         });
         if (!res.ok) throw new Error((await res.json()).error || 'import refusé');
         toast('Show importé');

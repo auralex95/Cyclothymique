@@ -8,6 +8,7 @@
 import { h, mount, toast } from '../util.js';
 import * as S from '../state.js';
 import { send } from '../net.js';
+import { askPin } from '../components/pinpad.js';
 
 export function render(container) {
   const unsubs = [];
@@ -117,6 +118,45 @@ export function render(container) {
         'Certains réseaux préfèrent 2.255.255.255 ou 10.255.255.255 comme adresse de broadcast.')
     );
 
+    const pinSet = !!S.state.status?.adminPinSet;
+    const accessPanel = h('.panel', null,
+      h('h3', null, 'Accès à la régie'),
+      h('.row', null,
+        h('span', { style: { flex: '1 1 240px' } },
+          h('b', { style: { color: pinSet ? 'var(--accent-2)' : 'var(--warn)' } },
+            pinSet ? 'Code défini' : 'Aucun code'),
+          h('.muted', null, pinSet
+            ? 'Le mode Régie demande le code ; le mode Live reste libre d’accès.'
+            : 'Tout le monde peut programmer. Définissez un code pour verrouiller la régie.')),
+        h('button.btn', {
+          type: 'button',
+          onclick: async () => {
+            const pin = await askPin({
+              title: pinSet ? 'Nouveau code' : 'Définir un code',
+              hint: 'Chiffres uniquement. Notez-le : il n’est pas récupérable depuis l’interface.'
+            });
+            if (pin === null) return;
+            if (pin.length < 4) return toast('Choisissez au moins 4 chiffres', 4000);
+            send('settings:save', { adminPin: pin });
+            toast('Code enregistré');
+          }
+        }, pinSet ? 'Changer le code' : 'Définir un code'),
+        pinSet
+          ? h('button.btn.danger', {
+              type: 'button',
+              onclick: () => {
+                if (!confirm('Retirer le code ? La régie redeviendra accessible à tous.')) return;
+                send('settings:save', { adminPin: '' });
+                toast('Code retiré');
+              }
+            }, 'Retirer')
+          : null
+      ),
+      h('p.muted', { style: { marginTop: '8px' } },
+        'Garde-fou contre les fausses manœuvres en exploitation, pas une sécurité réseau : ' +
+        'la liaison n’est pas chiffrée, réservez l’application à un réseau technique de confiance.')
+    );
+
     const st = S.state.status;
     const artnet = st?.artnet || {};
     const age = artnet.lastSendAt ? Math.round((Date.now() - artnet.lastSendAt) / 100) / 10 : null;
@@ -163,7 +203,7 @@ export function render(container) {
         h('button.btn', { type: 'button', onclick: () => { send('artnet:poll'); toast('ArtPoll envoyé'); } }, 'Rechercher des nodes'))
     );
 
-    mount(container, statusPanel, universesPanel, settingsPanel, nodesPanel);
+    mount(container, statusPanel, accessPanel, universesPanel, settingsPanel, nodesPanel);
   }
 
   function badge(label, value, ok) {

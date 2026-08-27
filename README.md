@@ -65,6 +65,8 @@ Un show d'exemple (6 lyres, 4 wash, 4 PAR, groupes et looks) est fourni :
 ## Architecture
 
 ```
+scripts/                Installation Raspberry Pi (service, kiosque, réseau)
+docs/                   Guide du pupitre autonome
 server/                 Backend Node.js
   index.js              Express + Socket.IO : API temps réel, REST export/import, statut
   artnet.js             Protocole Art-Net : ArtDMX, ArtPoll, ArtPollReply, socket UDP
@@ -85,7 +87,7 @@ public/                 Frontend (modules ES servis tels quels, aucun build)
     state.js            État local (miroir du serveur) + sélection
     util.js             Helpers DOM, glissé tactile (Pointer Events), toasts
     components/         Faders, pavé XY pan/tilt, color picker
-    views/              Contrôle, Presets, Effets, Patch, Fixtures, Réseau, Debug
+    views/              Live, Contrôle, Presets, Effets, Patch, Fixtures, Réseau, Debug
   sw.js                 Service worker (coquille PWA ; jamais le temps réel)
 
 data/
@@ -164,6 +166,7 @@ puis les mises à jour au fil de l'eau.
 | `preset:record` | `{ name, fixtureIds, fadeTime }` | Instantané (tout ou sélection) |
 | `preset:recall` | `{ id, fadeTime }` | Rappel avec fondu |
 | `preset:update` / `preset:remove` | `{ id, changes }` / `id` | Édition |
+| `auth:admin` / `auth:logout` | code / — | Entrée et sortie du mode Régie |
 | `effect:add` | `{ preset, fixtureIds }` | Démarre un effet sur une sélection |
 | `effect:update` | `{ id, changes }` | Taille, vitesse, décalage, sens, onde, pause |
 | `effect:remove` / `effect:clear` | `id` / — | Arrêt d'un effet / de tous |
@@ -309,7 +312,40 @@ données que si un client regarde cet onglet.
 
 ---
 
-## Installation sur Raspberry Pi (démarrage automatique)
+## Modes Live et Régie
+
+L'application s'ouvre en **mode Live** : un écran d'exploitation réduit à
+l'essentiel — les looks en grandes tuiles, les effets à mettre en pause, le master
+et le blackout. Impossible d'y déprogrammer quoi que ce soit par erreur.
+
+Le bouton **Régie** ouvre la programmation complète (contrôle, presets, effets,
+patch, profils, réseau, debug). Onglet **Réseau → Accès à la régie**, on peut
+définir un code : il est alors demandé sur un pavé numérique tactile, et le
+serveur refuse toute action de programmation venant d'une connexion non
+authentifiée — y compris depuis un autre appareil du réseau.
+
+C'est un garde-fou contre les fausses manœuvres en exploitation, **pas une
+sécurité réseau** : la liaison n'est pas chiffrée, réservez l'application à un
+réseau technique de confiance.
+
+Le mode est mémorisé sur l'appareil, et `?mode=live` dans l'URL le force au
+démarrage — c'est ce qu'utilise le mode kiosque du Raspberry Pi.
+
+## Pupitre autonome sur Raspberry Pi (écran tactile, sans ordinateur)
+
+Le Pi peut se suffire à lui-même : écran tactile officiel, démarrage automatique
+en plein écran sur l'écran Live, et point d'accès Wi-Fi si un iPad doit s'y
+connecter en second écran.
+
+```bash
+sudo ./scripts/install-raspberry-pi.sh    # service au démarrage
+./scripts/setup-kiosk.sh --rotate 90      # plein écran sur la dalle tactile
+sudo ./scripts/setup-network.sh --ssid Regie-Lumiere --password ... --eth-ip 2.0.0.10/8
+```
+
+Matériel, réseau, rotation de l'écran, veille, vérifications : **[docs/raspberry-pi.md](docs/raspberry-pi.md)**.
+
+## Installation manuelle du service (autres machines)
 
 ```bash
 sudo tee /etc/systemd/system/artnet-control.service >/dev/null <<'UNIT'

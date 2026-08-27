@@ -10,7 +10,7 @@
 
 import { h, mount, toast } from '../util.js';
 import * as S from '../state.js';
-import { send } from '../net.js';
+import { send, adminHeaders } from '../net.js';
 import { ATTRIBUTES, attrMeta, GROUP_ORDER, GROUP_LABELS } from '/shared/attributes.js';
 
 /** Les roues (couleur, gobo, shutter…) se pilotent par slots nommés. */
@@ -213,7 +213,9 @@ export function render(container) {
       try {
         const json = JSON.parse(await file.text());
         const res = await fetch('/api/fixtures', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(json)
+          method: 'POST',
+          headers: adminHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify(json)
         });
         const body = await res.json();
         if (!res.ok) throw new Error((body.errors || ['import refusé']).join(' · '));
