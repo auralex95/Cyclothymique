@@ -10,7 +10,7 @@ const SHELL = [
   '.', 'index.html', 'style.css',
   'js/main.js', 'js/net.js', 'js/state.js', 'js/util.js',
   'js/components/fader.js', 'js/components/xypad.js', 'js/components/colorpicker.js',
-  'js/views/control.js', 'js/views/patch.js', 'js/views/presets.js',
+  'js/views/control.js', 'js/views/patch.js', 'js/views/presets.js', 'js/views/fixtures.js',
   'js/views/network.js', 'js/views/monitor.js',
   '/shared/attributes.js',
   'manifest.webmanifest', 'icons/icon.svg'

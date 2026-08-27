@@ -42,14 +42,16 @@ Tests : `npm test` (paquets Art-Net, rendu DMX, 16 bits, fades, keep-alive).
 
 ## Prise en main en 4 étapes
 
-1. **Patch** — choisir un profil, un univers, une adresse de départ, une quantité, puis *Patcher*.
+1. **Fixtures** *(si votre projecteur n'est pas dans la bibliothèque)* — créer son profil
+   canal par canal depuis l'interface : il est utilisable immédiatement, sans redémarrer le serveur.
+2. **Patch** — choisir un profil, un univers, une adresse de départ, une quantité, puis *Patcher*.
    Le bouton *Adresse libre suivante* calcule automatiquement le premier trou disponible ;
    les chevauchements d'adresses sont signalés en rouge.
-2. **Réseau** — vérifier l'univers Art-Net (Net / Sub-Net / Universe), choisir broadcast
+3. **Réseau** — vérifier l'univers Art-Net (Net / Sub-Net / Universe), choisir broadcast
    ou l'IP d'un node précis, ajuster la fréquence (30 Hz par défaut).
-3. **Contrôle** — sélectionner un ou plusieurs projecteurs (ou un groupe), puis régler
+4. **Contrôle** — sélectionner un ou plusieurs projecteurs (ou un groupe), puis régler
    dimmer, pan/tilt, couleur, gobos, zoom…
-4. **Presets** — enregistrer un look, le rappeler d'un tap avec le temps de fade voulu.
+5. **Presets** — enregistrer un look, le rappeler d'un tap avec le temps de fade voulu.
 
 Un show d'exemple (6 lyres, 4 wash, 4 PAR, groupes et looks) est fourni :
 `data/examples/demo-show.json` → onglet **Patch → Importer un show**.
@@ -62,6 +64,7 @@ Un show d'exemple (6 lyres, 4 wash, 4 PAR, groupes et looks) est fourni :
 server/                 Backend Node.js
   index.js              Express + Socket.IO : API temps réel, REST export/import, statut
   artnet.js             Protocole Art-Net : ArtDMX, ArtPoll, ArtPollReply, socket UDP
+  fixtureProfile.js     Validation des profils créés depuis l'interface
   engine.js             État du show, rendu DMX, fades, boucle d'émission (keep-alive)
   store.js              Persistance JSON (écriture atomique + différée)
 
@@ -77,11 +80,11 @@ public/                 Frontend (modules ES servis tels quels, aucun build)
     state.js            État local (miroir du serveur) + sélection
     util.js             Helpers DOM, glissé tactile (Pointer Events), toasts
     components/         Faders, pavé XY pan/tilt, color picker
-    views/              Contrôle, Presets, Patch, Réseau, Debug
+    views/              Contrôle, Presets, Patch, Fixtures, Réseau, Debug
   sw.js                 Service worker (coquille PWA ; jamais le temps réel)
 
 data/
-  fixtures/*.json       Bibliothèque de profils (versionnée)
+  fixtures/*.json       Bibliothèque de profils (créés depuis l'onglet Fixtures ou à la main)
   examples/             Show de démonstration importable
   show/show.json        Show courant : patch, groupes, presets, réseau (généré, non versionné)
 
@@ -156,22 +159,51 @@ puis les mises à jour au fil de l'eau.
 | `preset:record` | `{ name, fixtureIds, fadeTime }` | Instantané (tout ou sélection) |
 | `preset:recall` | `{ id, fadeTime }` | Rappel avec fondu |
 | `preset:update` / `preset:remove` | `{ id, changes }` / `id` | Édition |
+| `fixture:save` | profil complet | Création / modification d'un profil (réponse : `{ ok, errors }`) |
+| `fixture:remove` | `id` | Suppression, refusée si le profil est patché |
 | `universes:save` / `settings:save` | tableau / objet | Réseau et fréquence |
 | `artnet:poll` | — | ArtPoll immédiat |
 | `monitor:subscribe` | `boolean` | Abonnement aux trames DMX (onglet Debug, 10 Hz) |
 | `show:reset` | — | Remise à zéro |
 
-**Serveur → client** : `init`, `show`, `values`, `values:full`, `master`, `blackout`,
+**Serveur → client** : `init`, `show`, `library`, `values`, `values:full`, `master`, `blackout`,
 `status` (1 Hz), `monitor` (10 Hz, sur abonnement), `preset:recalled`.
 
-**REST** : `GET /api/fixtures`, `GET /api/show` (export), `POST /api/show` (import), `GET /api/status`.
+**REST** : `GET /api/fixtures` (bibliothèque), `GET /api/fixtures/:id` (export d'un profil),
+`POST /api/fixtures` (création / modification), `DELETE /api/fixtures/:id`,
+`GET /api/show` (export), `POST /api/show` (import), `GET /api/status`.
 
 ---
 
 ## Profils de fixtures
 
+### Créer un profil depuis l'application (onglet Fixtures)
+
+Pas de JSON à écrire ni de serveur à redémarrer : l'onglet **Fixtures** propose un éditeur
+canal par canal, comme une fiche technique.
+
+1. *+ Nouveau profil*, puis renseigner le nom, la marque et le **nombre de canaux** du mode utilisé.
+2. Pour chaque canal, choisir la fonction pilotée dans la liste (Pan, Dimmer, Rouge, Roue gobo…).
+   Une entrée **« — canal fin (16 bits) »** existe pour chaque fonction continue : l'assigner au
+   canal suivant active le 16 bits (typiquement Pan/Pan fin, Tilt/Tilt fin).
+3. Colonne **Défaut** : la valeur appliquée au patch, en % (laisser vide = 0, sauf convention du profil).
+4. Pour les roues (couleur, gobo, shutter, prisme, macro), ajouter des **slots** *nom + valeur DMX* :
+   ils deviennent des boutons de sélection directe dans l'onglet Contrôle.
+5. *Enregistrer* : le profil est écrit dans `data/fixtures/`, la bibliothèque est rechargée à chaud
+   et tous les clients connectés le voient aussitôt.
+
+Autres actions : **Dupliquer** (partir d'un profil proche), **Exporter** / **Importer** un profil
+en JSON (partage entre installations), **Supprimer** — refusé tant qu'un projecteur patché l'utilise.
+
+Modifier un profil déjà patché est sans danger : les projecteurs concernés conservent la valeur
+des fonctions maintenues, reçoivent le défaut des nouvelles et perdent celles qui ont disparu.
+L'identifiant d'un profil ne change jamais après création, même si vous le renommez.
+
+### Format du fichier
+
 Un profil est un fichier JSON dans `data/fixtures/`. Les valeurs internes sont normalisées
-entre 0 et 1 ; le profil décrit uniquement le mapping vers les canaux DMX.
+entre 0 et 1 ; le profil décrit uniquement le mapping vers les canaux DMX. Un fichier déposé
+à la main dans ce dossier est chargé au démarrage du serveur.
 
 ```jsonc
 {
@@ -199,7 +231,9 @@ Attributs reconnus (voir `shared/attributes.js`) : `pan`, `tilt`, `ptSpeed`, `di
 Profils fournis : lyre générique 16 canaux, lyre wash RGBW 12 canaux, wash LED RGBW 8 canaux,
 PAR LED RGB 4 canaux, PAR LED RGB 3 canaux (dimmer virtuel).
 
-Pour ajouter un profil : déposer le fichier JSON dans `data/fixtures/`, puis redémarrer le serveur.
+Les fonctions disponibles dans l'éditeur sont exactement celles de cette liste : une fonction
+absente (roue de couleur spécifique, effet propriétaire…) se pilote en assignant un attribut
+générique comme `macro` ou `control`, avec des slots nommés.
 
 **Pan/tilt 16 bits** : dès qu'un profil déclare `fine`, la valeur est répartie sur les deux
 canaux (65 536 pas au lieu de 256) — c'est ce qui rend le mouvement fluide.

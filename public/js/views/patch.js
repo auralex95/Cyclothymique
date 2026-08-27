@@ -203,7 +203,7 @@ export function render(container) {
         h('.muted', null, Object.keys(p.channels).join(', '))
       ))),
       h('p.muted', { style: { marginTop: '8px' } },
-        'Pour ajouter un profil : déposez un fichier JSON dans data/fixtures/ puis redémarrez le serveur.')
+        'Pour créer ou modifier un profil, rendez-vous dans l’onglet Fixtures — la prise en compte est immédiate.')
     );
   }
 

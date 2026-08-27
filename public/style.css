@@ -116,6 +116,7 @@ button, input, select { font: inherit; color: inherit; }
   background: var(--panel-2); color: var(--text);
   border: 1px solid var(--line); border-radius: var(--radius); font-weight: 600;
 }
+a.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .btn:active { background: #26314a; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn.good { background: var(--accent-2); border-color: var(--accent-2); color: #04240f; }
@@ -282,3 +283,11 @@ table.patch input[type="text"], table.patch input[type="number"], table.patch se
 .swatch { height: 44px; border-radius: 10px; border: 1px solid rgba(255,255,255,.15); }
 
 .wheel-slots { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+
+/* Carte d'un profil dans la bibliothèque : description puis rangée d'actions */
+.profile-card {
+  padding: 10px; margin-bottom: 8px; border-radius: var(--radius);
+  border: 1px solid var(--line); background: var(--panel-2);
+}
+.profile-card.current { border-color: var(--accent); }
+.profile-card .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }

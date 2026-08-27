@@ -73,6 +73,26 @@ export class ShowEngine extends EventEmitter {
     }
   }
 
+  /**
+   * Après modification d'un profil : les projecteurs qui l'utilisent gardent les
+   * valeurs des fonctions conservées, reçoivent le défaut des nouvelles, et
+   * perdent celles qui ont disparu du profil.
+   */
+  refreshProfile(profileId) {
+    for (const fx of this.show.fixtures) {
+      if (fx.profileId !== profileId) continue;
+      const defaults = this.defaultValues(fx);
+      const current = this.values.get(fx.id) || new Map();
+      const merged = new Map();
+      for (const [attr, def] of defaults) merged.set(attr, current.has(attr) ? current.get(attr) : def);
+      this.values.set(fx.id, merged);
+      // Les fades portant sur une fonction disparue n'ont plus lieu d'être.
+      for (const [key, fade] of this.fades) {
+        if (fade.fixtureId === fx.id && !merged.has(fade.attr)) this.fades.delete(key);
+      }
+    }
+  }
+
   /** Valeurs de départ d'une fixture, d'après les défauts de chaque attribut. */
   defaultValues(fx) {
     const profile = this.getProfile(fx.profileId);

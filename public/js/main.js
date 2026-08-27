@@ -13,6 +13,7 @@ import { pct, toast } from './util.js';
 import * as controlView from './views/control.js';
 import * as presetsView from './views/presets.js';
 import * as patchView from './views/patch.js';
+import * as fixturesView from './views/fixtures.js';
 import * as networkView from './views/network.js';
 import * as monitorView from './views/monitor.js';
 
@@ -20,6 +21,7 @@ const VIEWS = {
   control: controlView,
   presets: presetsView,
   patch: patchView,
+  fixtures: fixturesView,
   network: networkView,
   monitor: monitorView
 };

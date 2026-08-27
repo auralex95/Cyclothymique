@@ -68,6 +68,12 @@ export function connect() {
   socket.on('blackout', (v) => { state.blackout = v; emit('blackout', v); });
   socket.on('status', (s) => { state.status = s; emit('status', s); });
   socket.on('monitor', (data) => emit('monitor', data));
+
+  // Bibliothèque de profils rechargée par le serveur (profil créé ou modifié).
+  socket.on('library', (library) => {
+    state.library = library;
+    emit('library', library);
+  });
   socket.on('preset:recalled', (info) => emit('preset:recalled', info));
 }
 
@@ -95,9 +101,14 @@ function flush() {
   socket?.emit('values:set', batch);
 }
 
-/** Envoi générique d'un ordre au serveur (patch, presets, réglages…). */
-export function send(event, payload) {
-  socket?.emit(event, payload);
+/**
+ * Envoi générique d'un ordre au serveur (patch, presets, réglages…).
+ * `ack` est appelé avec la réponse du serveur pour les ordres qui en renvoient
+ * une (enregistrement d'un profil de fixture, par exemple).
+ */
+export function send(event, payload, ack) {
+  if (typeof ack === 'function') socket?.emit(event, payload, ack);
+  else socket?.emit(event, payload);
 }
 
 export function setMaster(value) {

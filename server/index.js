@@ -15,7 +15,11 @@ import { Server as SocketServer } from 'socket.io';
 
 import { ArtNetSender } from './artnet.js';
 import { ShowEngine } from './engine.js';
-import { loadShow, loadFixtureLibrary, saveShowDebounced, saveShowNow, defaultShow, ROOT } from './store.js';
+import {
+  loadShow, loadFixtureLibrary, saveShowDebounced, saveShowNow, defaultShow, ROOT,
+  saveFixtureProfile, deleteFixtureProfile
+} from './store.js';
+import { validateProfile } from './fixtureProfile.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -36,6 +40,39 @@ const engine = new ShowEngine({
   onShowChanged: () => saveShowDebounced(show)
 });
 
+/**
+ * Recharge la bibliothèque de profils DEPUIS LE DISQUE, en place.
+ * Le tableau `library` est partagé avec le moteur : on le modifie sans le
+ * remplacer, pour que `engine.getProfile()` voie immédiatement les nouveautés.
+ */
+function reloadLibrary() {
+  library.splice(0, library.length, ...loadFixtureLibrary());
+  io.emit('library', library);
+}
+
+/**
+ * Enregistre un profil (création ou modification) et met tout le monde à jour.
+ * @returns {{ ok: boolean, errors?: string[], profile?: Object }}
+ */
+function saveProfile(input) {
+  const { profile, errors } = validateProfile(input);
+  if (!profile) return { ok: false, errors };
+  try {
+    saveFixtureProfile(profile);
+  } catch (err) {
+    return { ok: false, errors: [err.message] };
+  }
+  reloadLibrary();
+  engine.refreshProfile(profile.id);   // les projecteurs déjà patchés suivent
+  io.emit('values:full', engine.snapshot());
+  return { ok: true, profile };
+}
+
+/** Projecteurs patchés utilisant un profil (un profil utilisé ne se supprime pas). */
+function fixturesUsing(profileId) {
+  return show.fixtures.filter((f) => f.profileId === profileId);
+}
+
 /** Sauvegarde + diffusion du show à tous les clients après une modification de structure. */
 function showChanged() {
   engine.syncFixtures();
@@ -54,6 +91,38 @@ app.use('/shared', express.static(path.join(ROOT, 'shared')));
 
 /** Bibliothèque de profils. */
 app.get('/api/fixtures', (_req, res) => res.json(library));
+
+/** Un profil seul, en téléchargement (partage entre installations). */
+app.get('/api/fixtures/:id', (req, res) => {
+  const profile = library.find((p) => p.id === req.params.id);
+  if (!profile) return res.status(404).json({ error: 'Profil inconnu' });
+  res.setHeader('Content-Disposition', `attachment; filename="${profile.id}.json"`);
+  res.json(profile);
+});
+
+/** Création ou modification d'un profil de fixture (prise en compte immédiate). */
+app.post('/api/fixtures', (req, res) => {
+  const result = saveProfile(req.body);
+  if (!result.ok) return res.status(400).json({ errors: result.errors });
+  res.json({ ok: true, profile: result.profile });
+});
+
+/** Suppression d'un profil, refusée tant qu'un projecteur l'utilise. */
+app.delete('/api/fixtures/:id', (req, res) => {
+  const inUse = fixturesUsing(req.params.id);
+  if (inUse.length) {
+    return res.status(409).json({
+      errors: [`Profil utilisé par ${inUse.length} projecteur(s) : ${inUse.map((f) => f.name).join(', ')}`]
+    });
+  }
+  try {
+    if (!deleteFixtureProfile(req.params.id)) return res.status(404).json({ errors: ['Profil inconnu'] });
+  } catch (err) {
+    return res.status(400).json({ errors: [err.message] });
+  }
+  reloadLibrary();
+  res.json({ ok: true });
+});
 
 /** Export du show complet (patch + groupes + presets + réseau) : sauvegarde iPad. */
 app.get('/api/show', (_req, res) => {
@@ -195,6 +264,29 @@ io.on('connection', (socket) => {
     for (const g of show.groups) g.fixtureIds = g.fixtureIds.filter((id) => !list.includes(id));
     for (const p of show.presets) for (const id of list) delete p.values[id];
     showChanged();
+  });
+
+  // ---- Bibliothèque de fixtures --------------------------------------------
+
+  // Création / modification d'un profil depuis l'interface : pas de fichier à
+  // déposer à la main, pas de redémarrage du serveur.
+  socket.on('fixture:save', (profile, ack) => {
+    const result = saveProfile(profile);
+    if (typeof ack === 'function') ack(result);
+  });
+
+  socket.on('fixture:remove', (id, ack) => {
+    const inUse = fixturesUsing(id);
+    if (inUse.length) {
+      return ack?.({ ok: false, errors: [`Profil utilisé par ${inUse.length} projecteur(s) : ${inUse.map((f) => f.name).join(', ')}`] });
+    }
+    try {
+      if (!deleteFixtureProfile(id)) return ack?.({ ok: false, errors: ['Profil inconnu'] });
+    } catch (err) {
+      return ack?.({ ok: false, errors: [err.message] });
+    }
+    reloadLibrary();
+    ack?.({ ok: true });
   });
 
   // ---- Groupes -------------------------------------------------------------

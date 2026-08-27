@@ -100,6 +100,30 @@ export function saveShowNow(show) {
   writeJsonAtomic(SHOW_FILE, show);
 }
 
+/** Chemin du fichier d'un profil. L'identifiant est déjà assaini par validateProfile. */
+function profilePath(id) {
+  const file = path.join(FIXTURES_DIR, `${id}.json`);
+  // Ceinture et bretelles : on refuse tout chemin qui sortirait du dossier des profils.
+  if (path.dirname(path.resolve(file)) !== path.resolve(FIXTURES_DIR)) {
+    throw new Error('Identifiant de profil invalide');
+  }
+  return file;
+}
+
+/** Écrit (ou remplace) un profil de fixture sur le disque. */
+export function saveFixtureProfile(profile) {
+  ensureDirs();
+  writeJsonAtomic(profilePath(profile.id), profile);
+}
+
+/** Supprime le fichier d'un profil. Renvoie false s'il n'existait pas. */
+export function deleteFixtureProfile(id) {
+  const file = profilePath(id);
+  if (!fs.existsSync(file)) return false;
+  fs.unlinkSync(file);
+  return true;
+}
+
 /** Charge tous les profils de fixtures présents dans data/fixtures. */
 export function loadFixtureLibrary() {
   ensureDirs();
