@@ -1,0 +1,35 @@
+{
+  "id": "moving-wash-rgbw-12",
+  "name": "Lyre wash RGBW 12 canaux",
+  "manufacturer": "Générique",
+  "shortName": "Wash mobile",
+  "model": "Moving Wash RGBW 12ch",
+  "channelCount": 12,
+  "notes": "Lyre wash à LED RGBW, pan/tilt 16 bits et zoom motorisé.",
+  "channels": {
+    "pan":    { "channel": 1,  "fine": 2,  "default": 0.5 },
+    "tilt":   { "channel": 3,  "fine": 4,  "default": 0.5 },
+    "dimmer": { "channel": 5,  "default": 0 },
+    "shutter":{ "channel": 6,  "default": 1 },
+    "red":    { "channel": 7,  "default": 1 },
+    "green":  { "channel": 8,  "default": 1 },
+    "blue":   { "channel": 9,  "default": 1 },
+    "white":  { "channel": 10, "default": 0 },
+    "zoom":   { "channel": 11, "default": 0.5 },
+    "macro":  { "channel": 12, "default": 0 }
+  },
+  "wheels": {
+    "shutter": [
+      { "name": "Fermé", "value": 0 },
+      { "name": "Ouvert", "value": 255 },
+      { "name": "Strobe lent", "value": 40 },
+      { "name": "Strobe rapide", "value": 140 }
+    ],
+    "macro": [
+      { "name": "Off", "value": 0 },
+      { "name": "Macro couleur 1", "value": 60 },
+      { "name": "Macro couleur 2", "value": 120 },
+      { "name": "Arc-en-ciel", "value": 200 }
+    ]
+  }
+}

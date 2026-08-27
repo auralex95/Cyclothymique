@@ -1,0 +1,15 @@
+{
+  "id": "par-led-rgb-4",
+  "name": "PAR LED RGB 4 canaux",
+  "manufacturer": "Générique",
+  "shortName": "PAR RGB",
+  "model": "PAR LED RGB 4ch",
+  "channelCount": 4,
+  "notes": "PAR LED simple : dimmer + rouge/vert/bleu.",
+  "channels": {
+    "dimmer": { "channel": 1, "default": 0 },
+    "red":    { "channel": 2, "default": 1 },
+    "green":  { "channel": 3, "default": 1 },
+    "blue":   { "channel": 4, "default": 1 }
+  }
+}
